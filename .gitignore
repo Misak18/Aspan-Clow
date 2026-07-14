@@ -1,0 +1,13 @@
+# Секретные ключи и конфиги
+.env
+*.env
+config.json
+
+# Зависимости Node.js
+server/node_modules/
+server/package-lock.json
+server/package.json
+
+# Логи и временные файлы системы
+.DS_Store
+Thumbs.db

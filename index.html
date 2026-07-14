@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ASPAN AI Refined</title>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --accent-soft: rgba(0, 212, 255, 0.7);
+            --accent-dark: rgba(0, 80, 255, 0.8);
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, system-ui, sans-serif;
+            background: linear-gradient(to bottom, #0E2D7A, #0A183F);
+            color: #fff; overflow: hidden; height: 100vh;
+        }
+
+        canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+
+        .ui-container {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 35px;
+            padding: 40px 25px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            animation: cardFloat 5s ease-in-out infinite;
+            box-sizing: border-box;
+        }
+
+        @keyframes cardFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .btn, .main-btn {
+            position: relative;
+            background: linear-gradient(135deg, var(--accent-dark), rgba(0, 40, 150, 0.9));
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+            display: block;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
+        .btn:hover, .main-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(0, 212, 255, 0.2);
+            filter: brightness(1.1);
+        }
+
+        /* Улучшенная подложка модального окна */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 8, 30, 0.6); /* Полупрозрачный темный фон */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            transition: opacity 0.4s ease;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        /* Анимация появления контента модального окна */
+        .modal-overlay:not(.hidden) .glass-card {
+            animation: modalShow 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+        }
+
+        @keyframes modalShow {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Поля ввода внутри модалок */
+        input[type="text"], textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 12px 15px;
+            color: white;
+            margin-bottom: 20px;
+            outline: none;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--accent-soft);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Исправленное поле ответа ИИ */
+        #ai-response {
+            text-align: left;
+            line-height: 1.7;
+            max-height: 50vh;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 20px;
+            font-size: 14px;
+            border: 1px solid var(--glass-border);
+            margin-top: 15px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Тонкий скроллбар для области ответа */
+        #ai-response::-webkit-scrollbar { width: 4px; }
+        #ai-response::-webkit-scrollbar-track { background: transparent; }
+        #ai-response::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+        /* Стили заголовков */
+        .modal-overlay h2 { 
+            margin-top: 0; 
+            color: var(--accent-soft); 
+            font-size: 22px;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            margin-top: 10px;
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            opacity: 0.7;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="ui-container">
+    <div id="start-screen" class="glass-card">
+        <h1>ASPAN CLOW</h1>
+        <p style="color: rgba(255,255,255,0.5); font-size: 13px;">Выберите систему анализа талантов</p>
+        <div class="test-grid">
+            <button class="btn" onclick="openQuiz(1)">Пройти MBTI</button>
+            <button class="btn" onclick="openQuiz(2)">Пройти Gallup</button>
+        </div>
+    </div>
+</div>
+
+<div id="quiz-modal" class="modal-overlay hidden">
+    <div class="glass-card" style="max-width: 400px; animation: none;">
+        <div id="progress" class="progress">Вопрос 1</div>
+        <h2 id="question-text">Загрузка...</h2>
+        <div id="options-container"></div>
+        <button style="margin-top: 40px;"  class="btn" onclick="closeModal()">выйти</button>
+    </div>
+</div>
+
+<div id="finish-modal" class="modal-overlay hidden">
+    <div class="glass-card" style="animation: none;">
+        <h2 id="finish-title">Этап пройден!</h2>
+        <p id="finish-text">Рекомендуем пройти оба теста для точности.</p>
+        <div id="finish-actions"></div>
+        <button class="btn" style="background: rgba(255,255,255,0.1); margin-top: 10px;" onclick="generateFullResult()">Результат сейчас</button>
+    </div>
+</div>
+
+<div id="result-screen" class="modal-overlay hidden">
+    <div class="glass-card" style="max-width: 600px; width: 90%; animation: none;">
+        <h2>Анализ карьеры 2026</h2>
+        <div id="ai-response">ИИ изучает данные...</div>
+        <button class="btn" onclick="location.reload()" style="margin-top: 20px;">Завершить</button>
+    </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+let scene, camera, renderer, stars, lines = [];
+const isMobile = window.innerWidth < 600;
+const lineCount = isMobile ? 30 : 55; 
+const segments = isMobile ? 70 : 140;
+function init() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 100);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = [];
+    const starColors = [];
+    for (let i = 0; i < 400; i++) {
+        starPos.push((Math.random() - 0.5) * 250, Math.random() * 90, (Math.random() - 0.5) * 100);
+        const c = Math.random() > 0.5 ? 0.9 : 0.4;
+        starColors.push(c, c, c);
+    }
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+    starGeo.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
+    stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.6, vertexColors: true, transparent: true }));
+    scene.add(stars);
+    const material = new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.25 });
+    for (let j = 0; j < lineCount; j++) {
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array((segments + 1) * 3);
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const line = new THREE.Line(geometry, material);
+        line.position.y = -48;
+        line.position.z = (j - lineCount / 2) * 3.5;
+        scene.add(line);
+        lines.push(line);
+    }
+}
+function animate() {
+    requestAnimationFrame(animate);
+    const time = Date.now() * 0.0007;
+    stars.material.opacity = Math.sin(time * 2) * 0.25 + 0.7;
+    lines.forEach((line, j) => {
+        const pos = line.geometry.attributes.position.array;
+        for (let i = 0; i <= segments; i++) {
+            const edgeFade = Math.cos((i / segments - 0.5) * Math.PI);
+            pos[i * 3] = (i - segments / 2) * 4.5;
+            pos[i * 3 + 1] = Math.sin(i * 0.12 + time + j * 0.13) * 9 * edgeFade;
+            pos[i * 3 + 2] = 0;
+        }
+        line.geometry.attributes.position.needsUpdate = true;
+    });
+    renderer.render(scene, camera);
+}
+init(); animate();
+</script>
+<script>
+let sessionId = crypto.randomUUID();
+let currentQuestions = [];
+let currentIndex = 0;
+let completedTests = new Set();
+
+async function openQuiz(testId) {
+    const modal = document.getElementById('quiz-modal');
+    const container = document.getElementById('options-container');
+    
+    // Сброс состояния
+    currentIndex = 0;
+    container.innerHTML = 'Загрузка...';
+    modal.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`/api/questions/${testId}`);
+        currentQuestions = await response.json();
+        showNextQuestion();
+    } catch (e) {
+        console.error("Ошибка загрузки теста:", e);
+    }
+}
+
+function showNextQuestion() {
+    if (currentIndex >= currentQuestions.length) {
+        // Закрываем квиз и открываем окно завершения
+        document.getElementById('quiz-modal').classList.add('hidden');
+        showFinishScreen();
+        return;
+    }
+
+    const q = currentQuestions[currentIndex];
+    document.getElementById('progress').innerText = `Вопрос ${currentIndex + 1} из ${currentQuestions.length}`;
+    document.getElementById('question-text').innerText = q.question_text;
+    
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    
+    q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.innerText = opt.text;
+        btn.onclick = () => handleAnswer(q.question_id, opt.id);
+        container.appendChild(btn);
+    });
+}
+
+async function handleAnswer(qId, oId) {
+    // 1. Анимация затухания
+    const content = document.querySelector('#quiz-modal .modal-content');
+    if (content) content.style.opacity = '0.5';
+    
+    // 2. Логика завершения теста
+    if (currentIndex === currentQuestions.length - 1) {
+        const testId = currentQuestions[0].test_id;
+        completedTests.add(testId);
+    }
+
+    // 3. Отправка на сервер
+    try {
+        await fetch('/api/save-answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, questionId: qId, optionId: oId })
+        });
+    } catch (e) {
+        console.error("Ошибка сохранения:", e);
+    }
+
+    // 4. Переход к следующему
+    currentIndex++;
+    if (content) content.style.opacity = '1';
+    showNextQuestion();
+}
+async function showResult() {
+    // 1. Показываем экран результата
+    document.getElementById('finish-modal').classList.add('hidden');
+    document.getElementById('result-screen').classList.remove('hidden');
+    
+    const responseBox = document.getElementById('ai-response');
+    responseBox.innerText = ''; // Очищаем текст перед началом
+
+    try {
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: sessionId }) // Отправляем текущую сессию
+        });
+
+        // Работаем со стримом (потоком данных)
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            responseBox.innerText += chunk;
+            
+            // Авто-скролл вниз, чтобы всегда видеть свежий текст
+            responseBox.scrollTop = responseBox.scrollHeight;
+        }
+    } catch (error) {
+        console.error("Ошибка генерации:", error);
+        responseBox.innerText = "Произошла ошибка при связи с Gemini. Проверьте консоль сервера.";
+    }
+}
+
+async function handleAnswer(qId, oId) {
+    // В самом начале handleAnswer добавь запись о завершенном тесте, 
+    // если это был последний вопрос
+    if (currentIndex === currentQuestions.length - 1) {
+        const testId = currentQuestions[0].test_id; // берем ID из текущих данных
+        completedTests.add(testId);
+    }
+
+    await fetch('/api/save-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, questionId: qId, optionId: oId })
+    });
+
+    currentIndex++;
+    showNextQuestion();
+}
+
+async function generateFullResult() {
+    // Закрываем все окна и открываем финальный результат (результат-скрин из прошлого кода)
+    document.getElementById('finish-modal').classList.add('hidden');
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('result-screen').classList.remove('hidden');
+    
+    // Твоя функция showResult() со стримингом Gemini
+    showResult(); 
+}
+
+function closeModal() {
+    document.getElementById('quiz-modal').classList.add('hidden');
+}
+
+function showFinishScreen() {
+    const finishModal = document.getElementById('finish-modal');
+    const actions = document.getElementById('finish-actions');
+    const title = document.getElementById('finish-title');
+    const text = document.getElementById('finish-text');
+    
+    actions.innerHTML = '';
+    finishModal.classList.remove('hidden');
+
+    // Проверяем, какой тест остался (если 1 пройден, предлагаем 2, и наоборот)
+    const remainingTestId = !completedTests.has(1) ? 1 : (!completedTests.has(2) ? 2 : null);
+
+    if (remainingTestId) {
+        title.innerText = "Этап пройден!";
+        text.innerText = "Для точности в 2026 году лучше пройти оба теста.";
+        
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn';
+        nextBtn.innerText = `Пройти ${remainingTestId === 1 ? 'MBTI' : 'Gallup'}`;
+        nextBtn.onclick = () => {
+            finishModal.classList.add('hidden');
+            openQuiz(remainingTestId);
+        };
+        actions.appendChild(nextBtn);
+    } else {
+        title.innerText = "Все тесты завершены!";
+        text.innerText = "Теперь нейросеть Gemini 2.5 может провести полный анализ.";
+    }
+}
+</script>
+</body>
+</html>
